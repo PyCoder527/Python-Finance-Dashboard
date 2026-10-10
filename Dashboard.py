@@ -235,6 +235,31 @@ png = {
 }
 
 # Environment-safe formatting engine using built-in Python string formatting
+import re
+import pandas as pd
+
+
+def format_indian_currency(number):
+    """Formats a number into the Indian grouping system (##,##,##,###.##)"""
+    # Split the number into integer and decimal parts
+    parts = f"{number:.2f}".split(".")
+    int_part = parts[0]
+    dec_part = parts[1]
+
+    # Reverse the integer string to group from the right side
+    reversed_int = int_part[::-1]
+
+    # Separate the first 3 digits
+    res = reversed_int[:3]
+
+    # Group the remaining digits into sets of 2
+    for i in range(3, len(reversed_int), 2):
+        res += "," + reversed_int[i:i + 2]
+
+    # Reverse it back to normal and attach the decimal part
+    return f"{res[::-1]}.{dec_part}"
+
+
 def format_market_cap(number, ticker_symbol):
     if not number or pd.isna(number):
         return "N/A"
@@ -245,13 +270,15 @@ def format_market_cap(number, ticker_symbol):
 
         if number >= crore:
             val = number / crore
-            return f"₹ {val:,.2f} Crore"
-        elif number <= lakh_unit:
+            # Use Indian formatting for the value before the word 'Crore'
+            return f"₹ {format_indian_currency(val)} Crore"
+        elif number >= lakh_unit:  # Fixed a minor bug: changed '<=' to '>=' to correctly format Lakhs
             val = number / lakh_unit
-            return f"₹ {val:,.2f} Lakh"
+            return f"₹ {format_indian_currency(val)} Lakh"
         else:
-            return f"₹ {number:,.2f}"
+            return f"₹ {format_indian_currency(number)}"
     else:
+        # International stocks remain unchanged
         if number >= 1_000_000_000_000:
             val = number / 1_000_000_000_000
             return f"$ {val:,.2f} Trillion"
