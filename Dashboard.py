@@ -7,6 +7,7 @@ from streamlit import plotly_chart
 import requests
 import time
 from streamlit_cookies_controller import CookieController
+import locale
 
 # Initialize cookie controller
 controller = CookieController()
@@ -235,61 +236,54 @@ png = {
 }
 
 # Environment-safe formatting engine using built-in Python string formatting
-import re
-import pandas as pd
-
-
-def format_indian_currency(number):
-    """Formats a number into the Indian grouping system (##,##,##,###.##)"""
-    # Split the number into integer and decimal parts
-    parts = f"{number:.2f}".split(".")
-    int_part = parts[0]
-    dec_part = parts[1]
-
-    # Reverse the integer string to group from the right side
-    reversed_int = int_part[::-1]
-
-    # Separate the first 3 digits
-    res = reversed_int[:3]
-
-    # Group the remaining digits into sets of 2
-    for i in range(3, len(reversed_int), 2):
-        res += "," + reversed_int[i:i + 2]
-
-    # Reverse it back to normal and attach the decimal part
-    return f"{res[::-1]}.{dec_part}"
-
-
 def format_market_cap(number, ticker_symbol):
     if not number or pd.isna(number):
         return "N/A"
 
     if ticker_symbol.endswith(".NS") or ticker_symbol.endswith(".BO"):
-        crore = 1_00_00_000
-        lakh_unit = 1_00_000
+        # Initialize Indian locale for proper formatting
+        locale.setlocale(locale.LC_ALL, 'en_IN.UTF-8')
 
+        crore = 10_000_000
+        lakh_unit = 100_000
+
+        # 1. Check for Crore first
         if number >= crore:
             val = number / crore
-            # Use Indian formatting for the value before the word 'Crore'
-            return f"₹ {format_indian_currency(val)} Crore"
-        elif number >= lakh_unit:  # Fixed a minor bug: changed '<=' to '>=' to correctly format Lakhs
+            return f"₹ {locale.format_string('%.2f', val, grouping=True)} Crore"
+
+        # 2. Check for Lakh next
+        elif number >= lakh_unit:
             val = number / lakh_unit
-            return f"₹ {format_indian_currency(val)} Lakh"
+            return f"₹ {locale.format_string('%.2f', val, grouping=True)} Lakh"
+
+        # 3. Fallback for numbers smaller than 1 Lakh
         else:
-            return f"₹ {format_indian_currency(number)}"
+            return f"₹ {locale.format_string('%.2f', number, grouping=True)}"
+
+
+
     else:
-        # International stocks remain unchanged
-        if number >= 1_000_000_000_000:
-            val = number / 1_000_000_000_000
-            return f"$ {val:,.2f} Trillion"
-        elif number >= 1_000_000_000:
-            val = number / 1_000_000_000
-            return f"$ {val:,.2f} Billion"
-        elif number >= 1_000_000:
-            val = number / 1_000_000
-            return f"$ {val:,.2f} Million"
-        else:
-            return f"$ {number:,.2f}"
+        locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
+
+        def format_large_currency(number):
+            if number >= 1_000_000_000_000:
+                val = number / 1_000_000_000_000
+                return f"$ {locale.format_string('%.2f', val, grouping=True)} Trillion"
+
+            elif number >= 1_000_000_000:
+                val = number / 1_000_000_000
+                return f"$ {locale.format_string('%.2f', val, grouping=True)} Billion"
+
+            elif number >= 1_000_000:
+                val = number / 1_000_000
+                return f"$ {locale.format_string('%.2f', val, grouping=True)} Million"
+
+            else:
+                return f"$ {locale.format_string('%.2f', number, grouping=True)}"
+
+        return format_large_currency(number)
+
 
 
 # --- STEP 3: Fetch and Display Data ---
