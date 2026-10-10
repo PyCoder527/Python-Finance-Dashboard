@@ -7,7 +7,6 @@ from streamlit import plotly_chart
 import requests
 import time
 from streamlit_cookies_controller import CookieController
-import locale
 
 # Initialize cookie controller
 controller = CookieController()
@@ -241,49 +240,29 @@ def format_market_cap(number, ticker_symbol):
         return "N/A"
 
     if ticker_symbol.endswith(".NS") or ticker_symbol.endswith(".BO"):
-        # Initialize Indian locale for proper formatting
-        locale.setlocale(locale.LC_ALL, 'en_IN.UTF-8')
+        crore = 1_00_00_000
+        lakh_unit = 1_00_000
 
-        crore = 10_000_000
-        lakh_unit = 100_000
-
-        # 1. Check for Crore first
         if number >= crore:
             val = number / crore
-            return f"₹ {locale.format_string('%.2f', val, grouping=True)} Crore"
-
-        # 2. Check for Lakh next
-        elif number >= lakh_unit:
+            return f"₹ {val:,.2f} Crore"
+        elif number <= lakh_unit:
             val = number / lakh_unit
-            return f"₹ {locale.format_string('%.2f', val, grouping=True)} Lakh"
-
-        # 3. Fallback for numbers smaller than 1 Lakh
+            return f"₹ {val:,.2f} Lakh"
         else:
-            return f"₹ {locale.format_string('%.2f', number, grouping=True)}"
-
-
-
+            return f"₹ {number:,.2f}"
     else:
-        locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
-
-        def format_large_currency(number):
-            if number >= 1_000_000_000_000:
-                val = number / 1_000_000_000_000
-                return f"$ {locale.format_string('%.2f', val, grouping=True)} Trillion"
-
-            elif number >= 1_000_000_000:
-                val = number / 1_000_000_000
-                return f"$ {locale.format_string('%.2f', val, grouping=True)} Billion"
-
-            elif number >= 1_000_000:
-                val = number / 1_000_000
-                return f"$ {locale.format_string('%.2f', val, grouping=True)} Million"
-
-            else:
-                return f"$ {locale.format_string('%.2f', number, grouping=True)}"
-
-        return format_large_currency(number)
-
+        if number >= 1_000_000_000_000:
+            val = number / 1_000_000_000_000
+            return f"$ {val:,.2f} Trillion"
+        elif number >= 1_000_000_000:
+            val = number / 1_000_000_000
+            return f"$ {val:,.2f} Billion"
+        elif number >= 1_000_000:
+            val = number / 1_000_000
+            return f"$ {val:,.2f} Million"
+        else:
+            return f"$ {number:,.2f}"
 
 
 # --- STEP 3: Fetch and Display Data ---
