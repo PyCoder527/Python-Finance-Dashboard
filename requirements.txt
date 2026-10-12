@@ -3,5 +3,4 @@ plotly
 pandas
 streamlit
 requests
-locale
 streamlit-cookies-controller
